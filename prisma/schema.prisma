@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  isMarried Boolean @default(false)
+
+  c1FirstName String
+  c1LastName  String
+  c1Dob       String
+  c1Age       Int     @default(0)
+  c1SsnLast4  String
+
+  c2FirstName String?
+  c2LastName  String?
+  c2Dob       String?
+  c2Age       Int?
+  c2SsnLast4  String?
+
+  monthlySalaryC1      Float @default(0)
+  monthlySalaryC2      Float @default(0)
+  monthlyExpenseBudget Float @default(0)
+  insuranceDeductibles Float @default(0)
+
+  trustEnabled         Boolean @default(false)
+  trustPropertyAddress String?
+  trustPropertyValue   Float?
+
+  accounts    Account[]
+  liabilities Liability[]
+  reports     QuarterlyReport[]
+}
+
+model Account {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  owner       String
+  category    String
+  accountType String
+
+  accountNumberLast4 String?
+  institutionName    String?
+}
+
+model Liability {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  liabilityType String
+  interestRate  Float
+  balance       Float
+}
+
+model QuarterlyReport {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  reportDate   String
+  quarterLabel String
+
+  inflowMonthly            Float
+  outflowMonthly           Float
+  excessMonthly            Float
+  privateReserveBalance    Float
+  privateReserveTarget     Float
+  investmentAccountBalance Float @default(0)
+
+  trustValueThisQuarter Float @default(0)
+
+  retirementTotalC1  Float @default(0)
+  retirementTotalC2  Float @default(0)
+  nonRetirementTotal Float @default(0)
+  grandTotalNetWorth Float @default(0)
+  totalLiabilities   Float @default(0)
+
+  accountBalancesJson   String @default("[]")
+  liabilityBalancesJson String @default("[]")
+
+  pdfUrl String?
+}

@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AW Client Report Portal
 
-## Getting Started
+Internal quarterly reporting portal for Anderson Wealth Management / Windbrook Solutions.
 
-First, run the development server:
+## Setup
 
 ```bash
+npm install
+cp .env.example .env
+# Edit .env: set PORTAL_PASSWORD and NEXTAUTH_SECRET
+npx prisma migrate dev
+npx prisma db seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and sign in with your portal password.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | SQLite path, e.g. `file:./dev.db` |
+| `PORTAL_PASSWORD` | Password for the internal portal login page |
+| `NEXTAUTH_SECRET` | Random secret for session signing (`openssl rand -base64 32`) |
 
-## Learn More
+## Changing the portal password
 
-To learn more about Next.js, take a look at the following resources:
+Set `PORTAL_PASSWORD` in your `.env` (or Vercel env vars) and restart. Sessions are `httpOnly` cookies that expire in 7 days.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploying to Vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+> **Important:** Puppeteer does not work on Vercel's standard Node.js runtime. Before deploying, switch to the serverless-compatible Chromium binary:
+>
+> 1. `npm install @sparticuz/chromium puppeteer-core && npm uninstall puppeteer`
+> 2. Update `lib/pdf-generator.ts`:
+>
+> ```typescript
+> import chromium from '@sparticuz/chromium'
+> import puppeteer from 'puppeteer-core'
+>
+> export async function generatePdfFromHtml(html: string): Promise<Buffer> {
+>   const browser = await puppeteer.launch({
+>     args: chromium.args,
+>     defaultViewport: chromium.defaultViewport,
+>     executablePath: await chromium.executablePath(),
+>     headless: chromium.headless,
+>   })
+>   // rest of function unchanged
+> }
+> ```
 
-## Deploy on Vercel
+### Deploy steps
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+vercel --prod
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Set in the Vercel dashboard: `DATABASE_URL`, `PORTAL_PASSWORD`, `NEXTAUTH_SECRET`.  
+The PDF endpoint has a 30-second timeout configured in `vercel.json`.
+
+## Scripts
+
+```bash
+npm run dev     # dev server at http://localhost:3000
+npm run build   # production build + TypeScript check
+npm run start   # run production build locally
+```
